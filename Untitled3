@@ -1,0 +1,346 @@
+#include <iostream>
+#include <string>
+#include <vector>
+#include <fstream>
+#include <stdlib.h>
+
+using namespace std;
+
+/*
+enum myEnum{0, e1, e2};
+enum myEnum2{0, e3, e4};
+
+enum UnitType {none, piece, weight, volume};
+enum FlourQuality {none, cal_I, cal_II, cal_III};
+*/
+
+enum products{flour, cabbage};
+
+class Product {
+protected:
+    string name;
+    float cost;
+    float price;
+    float quantity;
+    string unitType;
+    friend class Stock;
+
+public:
+    Product(string name = "", float cost = 0, float price = 0, float quantity = 0, string unitType = "") {
+        this->name = name;
+        this->cost = cost;
+        this->price = price;
+        this->unitType = unitType;
+        this->quantity = quantity;
+    }
+
+    void setName(string name) {this->name = name;}
+
+    string getName() {return this->name;}
+
+    void setCost(float cost) {this->cost = cost;}
+
+    float getCost() {return this->cost;}
+
+    void setPrice(float price) {this->price = price;}
+
+    float getPrice() {return this->price;}
+
+    void setUnitType(string unitType) {this->unitType = unitType;}
+
+    string getUnitType() {return this->unitType;}
+
+    void setQuantity(float quantity) {this->quantity = quantity;}
+
+    float getQuantity() {return this->quantity;}
+
+};
+
+class Cabbage:public Product {
+public:
+    Cabbage(string name="cabbage", float cost = 0, float price = 0, float quantity = 0, string unitType = "piece") {
+        this->name = name;
+        this->cost = cost;
+        this->price = price;
+        this->unitType = unitType;
+        this->quantity = quantity;
+    }
+};
+
+class Flour:public Product {
+    string floorQuality;
+    int points;
+public:
+    Flour(string name = "flour", float cost = 0, float price = 0, float quantity = 0, string floorQuality = "", string unitType = "weight") {
+        this->name = name;
+        this->cost = cost;
+        this->price = price;
+        this->unitType = unitType;
+        this->quantity = quantity;
+        this->floorQuality = floorQuality;
+        //this->points = 0;
+    }
+    void setPoints(int points) {this->points = points;}
+    int getPoints() {return this->points;}
+
+};
+
+class Stock {
+    vector<Flour> listOfFlours;
+    vector<Cabbage> listOfCabbages;
+
+    string returnNextParam(int* poz1, int* poz2, const string line) {
+        *poz1 = *poz2 + 1;
+        *poz2 = line.find('-', *poz1);
+        return line.substr(*poz1,*poz2-*poz1);
+    }
+
+    string toLower(string name) {
+        for(int i=0;i<name.size();i++) {
+            if(name.at(i)>='A' && name.at(i)<='Z') {
+                name.at(i)+=32;
+            }
+        }
+        return name;
+    }
+
+public:
+    Stock() {
+        init();
+    }
+
+    void init() {
+        ifstream in("stock2.txt");
+        string line;
+        int poz1, poz2;
+        string object, name, cost, price, quantity, flourQuality, unitType;
+        while(getline(in, line)) {
+            poz2 = -1; // When returnNextParam function will be called, poz1 will become poz2+1=0
+            name = returnNextParam(&poz1, &poz2, line);
+            cost = returnNextParam(&poz1, &poz2, line);
+            price = returnNextParam(&poz1, &poz2, line);
+            quantity = returnNextParam(&poz1, &poz2, line);
+            string auxName;
+            auxName = toLower(name);
+            if(auxName.find("flour")!=-1) {
+                flourQuality = returnNextParam(&poz1, &poz2, line);
+                unitType = returnNextParam(&poz1, &poz2, line);
+                Flour flour(name, stof(cost), stof(price), stof(quantity), flourQuality, unitType);
+                listOfFlours.push_back(flour);
+            }
+            if(auxName.find("cabbage")!=-1) {
+                unitType = returnNextParam(&poz1, &poz2, line);
+                Cabbage cabbage(name, stof(cost), stof(price), stof(quantity), unitType);
+                listOfCabbages.push_back(cabbage);
+            }
+        }
+        in.close();
+    }
+
+    float getFlourStock() {
+        float totalQuantity = 0;
+        for(int i=0;i<listOfFlours.size();i++) {
+            totalQuantity += listOfFlours.at(i).quantity;
+        }
+        return totalQuantity;
+    }
+
+    float getCabbageStock() {
+        float totalQuantity = 0;
+        for(int i=0;i<listOfCabbages.size();i++) {
+            totalQuantity += listOfCabbages.at(i).quantity;
+        }
+        return totalQuantity;
+    }
+
+    vector<Flour> getListOfFlours() {return this->listOfFlours;}
+    friend class ShopMan;
+};
+
+class ShoppingList {
+    vector<string> shoppingListNames;
+
+    string toLower(string name) {
+        for(int i=0;i<name.size();i++) {
+            if(name.at(i)>='A' && name.at(i)<='Z') {
+                name.at(i)+=32;
+            }
+        }
+        return name;
+    }
+
+public:
+    void init() {
+        ifstream in("shoppingList.txt");
+        string line;
+        int poz1, poz2;
+        string productName;
+        while(getline(in, line)) {
+            productName = toLower(line);
+            shoppingListNames.push_back(productName);
+        }
+        in.close();
+    }
+    vector<string> getShoppingListNames() {
+        return this->shoppingListNames;
+    }
+};
+
+class Person {
+protected:
+    string name;
+public:
+    Person(string name = "") {
+        this->name = name;
+    }
+};
+
+class ShopMan:Person {
+    ShoppingList clientList;
+    bool isAProductThatWeHave(string product) {
+        if(product.find("flour")!=-1) return true;
+        if(product.find("cabbage")!=-1) return true;
+        return false;
+    }
+    string returnNextParam(int* poz1, int* poz2, const string line, char ch) {
+        *poz1 = *poz2 + 1;
+        *poz2 = line.find(ch, *poz1);
+        return line.substr(*poz1,*poz2-*poz1);
+    }
+
+    int getNoOfWords(string line) {
+        int no=1;
+        for(int i=0;i<line.size();i++) {
+            if(line.at(i) == ' ') {
+                no++;
+            }
+        }
+        return no;
+    }
+    string toLower(string name) {
+        for(int i=0;i<name.size();i++) {
+            if(name.at(i)>='A' && name.at(i)<='Z') {
+                name.at(i)+=32;
+            }
+        }
+        return name;
+    }
+
+public:
+    ShopMan(string name = "") {
+        this->name = name;
+    }
+    void receiveClientList(ShoppingList shopppingList) {
+        this->clientList = shopppingList;
+    }
+
+    void purposeMostProfitableChoices(Stock stock) {
+        int poz1, poz2;
+        string line, param, quantity, productName;
+        for(int i=0;i<clientList.getShoppingListNames().size();i++) {
+            for(int j=0;j<stock.getListOfFlours().size();j++) {
+                stock.getListOfFlours().at(j).setPoints(0);
+            }
+            if(!isAProductThatWeHave(clientList.getShoppingListNames().at(i))) {
+                cout<<"We don't have "<<clientList.getShoppingListNames().at(i)<<endl;
+                continue;
+            }
+            else {
+                line = clientList.getShoppingListNames().at(i);
+
+                int noOfWords = getNoOfWords(line); //return no. of words
+                if(line.find("flour")!=-1) {
+                    for(int j=0;j<stock.getListOfFlours().size();j++) {
+                        poz2 = -1;
+                        productName = returnNextParam(&poz1, &poz2, line, '-');
+                        quantity = returnNextParam(&poz1, &poz2, line, '-');
+                        poz2 = -1;
+                        while(noOfWords>0) {
+                            string param = returnNextParam(&poz1, &poz2, productName, ' ');
+                            //cout<<toLower(stock.getListOfFlours().at(j).getName())<<" ----"<<param<<endl;
+                            if(toLower(stock.getListOfFlours().at(j).getName()).find(param)!=-1) {
+
+                                cout<<"...."<<stock.getListOfFlours().at(j).getPoints()<<".."<<endl;
+                                stock.getListOfFlours().at(j).setPoints(2);
+                                cout<<"...."<<stock.getListOfFlours().at(j).getPoints()<<".."<<endl;
+                            }
+
+                            noOfWords--;
+                        }
+                    }
+                }
+            }
+            for(int j=0;j<stock.getListOfFlours().size();j++) {
+                cout<<stock.getListOfFlours().at(j).getPoints()<<" ";
+            }
+            cout<<endl;
+        }
+    }
+
+};
+
+class Client:Person {
+    float amountOfMoney;
+    ShoppingList shoppingList;
+public:
+    Client(string name = "Client", float amountOfMoney = 0) {
+        this->name = name;
+        this->amountOfMoney = amountOfMoney;
+        shoppingList.init();
+    }
+
+    ShoppingList getShoppingList() {
+        return this->shoppingList;
+    }
+    float getAmountOfMoney() {
+        return this->amountOfMoney;
+    }
+};
+/*
+class Shop {
+    Client client;
+    Person storeMane("StoreMan");
+public:
+    void
+
+};*/
+
+
+int main()
+{
+    Client client;
+    Stock stock;
+    ShopMan shopMan("ShopMan");
+    shopMan.receiveClientList(client.getShoppingList());
+    for(int i=0;i<client.getShoppingList().getShoppingListNames().size();i++) {
+        cout<<client.getShoppingList().getShoppingListNames().at(i)<<endl;
+    }
+    shopMan.purposeMostProfitableChoices(stock);
+
+
+    /*
+  Cabbage cabbage1;
+  Cabbage cabbage2;
+  Flour flour1;
+  //varza.setTypeOfMeasure(none);
+*/
+ /* cout<<cabbage1.getName()<<endl;
+  cout<<cabbage2.getUnitType()<<endl;
+  cout<<cabbage1.getCost()<<endl;
+  cout<<flour1.getCost()<<endl;*/
+  /*
+  Stock stock;
+  //cout<<stock.getFlourStock()<<" ";
+  //cout<<stock.getCabbageStock();
+  vector<string> shopListNa;
+  ShoppingList shoppingList;
+  shopListNa = shoppingList.getShoppingListNames();
+  for(int i=0;i<shopListNa.size();i++) {
+        cout<<shopListNa.at(i)<<endl;
+  }
+*/
+  //product.setTypeOfMeasure(piece);
+  //cout<<product.getTypeOfMeasure();
+    return 0;
+}
+

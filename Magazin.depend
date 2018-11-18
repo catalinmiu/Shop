@@ -1,0 +1,9 @@
+# depslib dependency file v1.0
+1542449965 source:c:\users\catal\desktop\infoarena\magazin\main.cpp
+	<iostream>
+	<string>
+	<vector>
+	<fstream>
+	<stdlib.h>
+	<algorithm>
+
